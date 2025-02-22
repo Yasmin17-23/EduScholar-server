@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 8000;
@@ -19,6 +20,21 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+//token verify 
+const verifyToken = (req, res, next) => {
+  console.log('inside verify token', req.headers);
+  if(!req.headers.authorization) {
+    return res.status(401).send({ message: 'unauthorized access' });
+  }
+  const token = req.headers.authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, (err, decoded) => {
+     if (err) {
+       return res.status(401).send({ message: 'unauthorized access' });
+     }
+     req.decoded = decoded;
+     next()
+  } )
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hmtao.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -38,6 +54,15 @@ async function run() {
     
     const scholarshipCollection = client.db('eduScholar').collection('scholarships');
 
+    //jwt generate
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_SECRET_TOKEN, {
+        expiresIn: '7d',
+      })
+      res.send({ token })
+    })
+
     //Get all scholarships from db
     app.get('/scholarships', async (req, res) => {
         const result = await scholarshipCollection.find().toArray();
@@ -45,7 +70,7 @@ async function run() {
     })
 
     //Get single scholarship data using id from db
-    app.get('/scholarship/:id', async (req, res) => {
+    app.get('/scholarship/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await scholarshipCollection.findOne(query);
