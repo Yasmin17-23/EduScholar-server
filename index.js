@@ -53,6 +53,7 @@ async function run() {
     //await client.connect();
     
     const scholarshipCollection = client.db('eduScholar').collection('scholarships');
+    const usersCollection = client.db('eduScholar').collection('users');
 
     //jwt generate
     app.post('/jwt', async (req, res) => {
@@ -75,6 +76,30 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await scholarshipCollection.findOne(query);
       res.send(result)
+    })
+
+    //Save a user data in db
+    app.post('/user', async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email }
+      
+      //save user for the first time
+      const options = { upsert: true };
+      const updateDoc = {
+         $set: {
+           ...user,
+          timestamp: Date.now(),
+         },
+      }
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result)
+
+    })
+
+    //Get all users from db
+    app.get('/users', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
     })
 
 
