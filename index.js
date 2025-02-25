@@ -79,7 +79,7 @@ async function run() {
     })
 
     //Save a user data in db
-    app.post('/user', async (req, res) => {
+    app.put('/user', async (req, res) => {
       const user = req.body;
       const query = { email: user?.email }
       
@@ -100,6 +100,36 @@ async function run() {
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
+    })
+
+    //Get a user using email from db
+    app.get('/user/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
+      res.send(result)
+    })
+
+    //Update a user role
+    app.patch('/users/update/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email };
+      const updateDoc ={
+         $set: {
+            ...user,
+            timestamp: Date.now(),
+         },
+      }
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
+    //delete user from db 
+    app.delete('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result)
     })
 
 
